@@ -1,5 +1,5 @@
-// Globálne premenné pre scénu, kameru, render, auto a ovládanie
-let scene, camera, renderer, car;
+// Globálne premenné pre scénu, kameru, render, auto, kružnicu a ovládanie
+let scene, camera, renderer, car, circle;
 let carSpeed = 0.05; // Rýchlosť pohybu auta
 let moveLeft = false;
 let moveRight = false;
@@ -11,58 +11,64 @@ function init() {
     scene.background = new THREE.Color(0x87ceeb); // Farba pozadia (modrá obloha)
 
     // 2. Nastavenie kamery
-    // PerspectiveCamera(uhol pohľadu, pomer strán, blízky klip, vzdialený klip)
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 5, 10); // Pozícia kamery (x, y, z)
     camera.lookAt(0, 0, 0); // Kamera sa pozerá na stred scény
 
     // 3. Nastavenie renderera
-    renderer = new THREE.WebGLRenderer({ antialias: true }); // antialias pre hladšie hrany
+    renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement); // Pridanie plátna (canvas) do tela HTML
+    document.body.appendChild(renderer.domElement);
 
     // 4. Pridanie svetla
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); // Rovnomerné svetlo
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8); // Smerové svetlo (ako slnko)
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
     directionalLight.position.set(5, 10, 7.5);
     scene.add(directionalLight);
+    
+    // 5. Vytvorenie a pridanie kružnice (vizuálny indikátor)
+    const circleGeometry = new THREE.CircleGeometry(2, 32); // Polomer 2, 32 segmentov
+    const circleMaterial = new THREE.MeshBasicMaterial({ color: 0x66ff66, side: THREE.DoubleSide }); // Svetlozelená farba
+    circle = new THREE.Mesh(circleGeometry, circleMaterial);
+    circle.rotation.x = -Math.PI / 2; // Otočenie, aby bola horizontálna
+    circle.position.y = 0; // Umiestnenie na zem
+    scene.add(circle);
 
-    // 5. Načítanie 3D modelu auta (auto.glb)
+    // 6. Načítanie 3D modelu auta (auto.glb)
     const loader = new THREE.GLTFLoader();
     loader.load(
-        'auto.glb', // Cesta k tvojmu modelu
+        'auto.glb',
         function (gltf) {
             car = gltf.scene;
             
-            // --- MOŽNÉ ÚPRAVY, AK AUTO NIE JE VIDITEĽNÉ ---
-            // Skús zmeniť mierku, ak je auto príliš malé alebo veľké
-            // car.scale.set(0.5, 0.5, 0.5); // Príklad zmenšenia
-            // car.scale.set(2, 2, 2); // Príklad zväčšenia
+            // Auto umiestnime do stredu kružnice
+            car.position.set(0, 0, 0);
             
-            // Skús zmeniť pozíciu, ak je auto mimo zorného poľa kamery
-            car.position.y = 0; // Umiestnenie na zem
+            // Ak je auto príliš malé/veľké, odkomentuj a uprav mierku
+            // car.scale.set(0.5, 0.5, 0.5);
+            // car.scale.set(2, 2, 2);
             
-            // Skús otočiť model, ak je obrátený nesprávnym smerom
-            // car.rotation.y = Math.PI; // Otočenie o 180 stupňov
+            // Ak je auto zle orientované, odkomentuj a uprav rotáciu
+            // car.rotation.y = Math.PI;
             
-            scene.add(car); // Pridanie auta do scény
-            console.log("Auto bolo úspešne načítané a pridané do scény.");
+            // Dôležité: Pridaj auto ako dieťa kružnice.
+            // Bude sa hýbať spolu s ňou.
+            circle.add(car);
+            console.log("Auto bolo úspešne načítané a pridané ako dieťa kružnice.");
         },
-        // Funkcia na sledovanie priebehu načítania
-        undefined, 
-        // Funkcia, ktorá sa zavolá v prípade chyby
+        undefined,
         function (error) {
             console.error('Došlo k chybe pri načítaní modelu auta:', error);
         }
     );
 
-    // 6. Pridanie poslucháčov udalostí pre klávesy a zmenu veľkosti okna
+    // 7. Pridanie poslucháčov udalostí pre klávesy a zmenu veľkosti okna
     document.addEventListener('keydown', onKeyDown, false);
     document.addEventListener('keyup', onKeyUp, false);
     window.addEventListener('resize', onWindowResize, false);
 
-    // 7. Spustenie animácie
+    // 8. Spustenie animácie
     animate();
 }
 
@@ -101,13 +107,13 @@ function onWindowResize() {
 function animate() {
     requestAnimationFrame(animate);
 
-    // Pohyb auta
-    if (car) { // Kontrola, či je auto načítané
+    // Pohyb kružnice (a tým aj auta)
+    if (circle) {
         if (moveLeft) {
-            car.position.x -= carSpeed;
+            circle.position.x -= carSpeed;
         }
         if (moveRight) {
-            car.position.x += carSpeed;
+            circle.position.x += carSpeed;
         }
     }
 
